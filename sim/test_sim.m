@@ -11,6 +11,8 @@ function test_sim(repoRoot)
 %      because it multiplies FWHM by 2.355 where base width is 1.699 FWHM
 %   6  temperature lowers retention when dH < 0, and Column/OMPhase/pH
 %      change nothing (they are declared ignored)
+%   7  the measured solvent front is picked at t0 with its measured height
+%      and FWHM, and opts.front = 'none' leaves no peak there
 
 here = fileparts(mfilename('fullpath'));
 addpath(here);
@@ -94,6 +96,22 @@ Xc = Xa; Xc(11:13) = [3 1 7];
 Rc = simHPLC(Xc, simSample(), quiet);
 check(isequal(Rc.intensity, Ra.intensity), 'Column, OMPhase and pH change nothing');
 n = n + 2;
+
+% 7 the solvent front, on a method where no compound elutes near t0
+if exist('autofindpeaks', 'file') == 2
+    X = method(8, 20, 95, 30, 0, 0, 0, 0, 2, 1.5);
+    R = simHPLC(X, simSample(), struct('noise', 0.02));
+    P = simPeaksRow(R);
+    P = P{5}{1};
+    [d, j] = min(abs(P(:, 2) - R.t0));
+    check(d < 0.01 && abs(P(j, 3) - 85) / 85 < 0.1 && abs(P(j, 4) - 0.0415) / 0.0415 < 0.15, ...
+        sprintf('front picked at %.3f min (t0 %.3f), %.1f mAU, FWHM %.4f', P(j, 2), R.t0, P(j, 3), P(j, 4)));
+    R = simHPLC(X, simSample(), struct('noise', 0.02, 'front', 'none'));
+    P = simPeaksRow(R);
+    P = P{5}{1};
+    check(~any(P(:, 2) > 0 & abs(P(:, 2) - R.t0) < 0.05), 'no peak near t0 with front ''none''');
+    n = n + 2;
+end
 
 fprintf('test_sim: %d checks passed\n', n);
 end

@@ -18,6 +18,8 @@ function out = runSimOptimisation(varargin)
 %     'useBO'      true   use BayesianOptimiser (needs fitrgp, from the
 %                         Statistics and Machine Learning Toolbox); with
 %                         false, or without fitrgp, random search instead
+%     'front'      'measured'  simHPLC's opts.front; 'none' removes the
+%                         solvent front, to see what voidTime 0 lets through
 %   Design space, as in Optimisation 1: GradTime 1-10 min, initial %B 5-60,
 %   iso hold 0-10 min; final %B 95, 30 C, 2 uL, 1.5 mL/min fixed.
 %
@@ -30,10 +32,10 @@ function out = runSimOptimisation(varargin)
 %
 %   The objective is called the way the app calls it, with voidTime 0 and
 %   skew 1.1. With voidTime 0 the void-time filter removes nothing, so the
-%   solvent-front blip counts as a peak, as it did in the saved runs.
+%   measured solvent front counts as a peak, as it did in all 420 saved runs.
 
 p = struct('objective', @WeightRespcmtmdHPLC018, 'nInit', 7, 'nOpt', 25, ...
-    'sample', [], 'seed', 1, 'useBO', true);
+    'sample', [], 'seed', 1, 'useBO', true, 'front', 'measured');
 for i = 1:2:numel(varargin)
     p.(varargin{i}) = varargin{i + 1};
 end
@@ -87,7 +89,7 @@ out = struct('Z', Z, 'X', cell2mat(arrayfun(@(i) toMethod(Z(i, :)), (1:size(Z, 1
 end
 
 function [peaksData, truth] = runOne(X, p, peaksData, truth, i)
-R = simHPLC(X, p.sample, struct('seed', i));
+R = simHPLC(X, p.sample, struct('seed', i, 'front', p.front));
 peaksData(end + 1, :) = simPeaksRow(R);
 truth(end + 1) = struct('RsCrit', R.truth.RsCrit, 'nResolved', R.truth.nResolved, ...
     'lastPeak', R.truth.lastPeak, 'nEluted', R.truth.nEluted);

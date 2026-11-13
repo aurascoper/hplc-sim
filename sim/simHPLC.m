@@ -21,8 +21,8 @@ function R = simHPLC(X, sample, opts)
 %     plates       N(F) = N0*H(F0)/H(F), H = A + B/F + C*F, a van Deemter
 %                  shape with invented A, B, C.
 %     detector     exponentially modified Gaussian-like peaks with slight
-%                  tailing, a solvent-front blip at t0, baseline drift with
-%                  %B, white noise.
+%                  tailing, a solvent front at t0 (opts.front), baseline
+%                  drift with %B, white noise.
 %   A compound still on the column at the stop time is reported with
 %   eluted = false and contributes nothing to the trace.
 %
@@ -30,9 +30,20 @@ function R = simHPLC(X, sample, opts)
 %   would block the app's default design, and modelling them would invent
 %   more than this simulator already does. Change them and nothing moves.
 %
+%   The solvent front. opts.front = 'measured' (the default) puts a
+%   Gaussian at t0 with the median shape of the first peak in the 420 saved
+%   runs' 210 nm traces (PaperResults/*/Optimisation N trace data.csv):
+%   85 mAU above baseline, FWHM 0.0415 min, nearly symmetric, and no dip
+%   after it. It crosses the saved 10 mAU picking threshold, so with the
+%   app's voidTime = 0 it is counted as a peak, as it was in every saved
+%   run. All 420 runs were at 1.5 mL/min and 2 uL, so the front does not
+%   scale with flow or injection volume. They place it at 0.348 min, which
+%   implies a void volume of 0.52 mL; the simulator keeps it at its own t0.
+%   opts.front = 'none' leaves it out.
+%
 %   opts fields (defaults): Vm 0.5 mL, Vd 0.2 mL, N0 4000 at F0 1 mL/min,
 %   vanDeemter [1 0.4 0.6], rate 150 points/min, noise 0.05 mAU,
-%   drift 0.02 mAU per %B, seed 1, dt 0.002 min.
+%   drift 0.02 mAU per %B, seed 1, dt 0.002 min, front 'measured'.
 
 if nargin < 2 || isempty(sample), sample = simSample(); end
 if nargin < 3, opts = struct(); end
@@ -89,8 +100,13 @@ for i = find(eluted)'
         y = y + area(i) * shape / s;
     end
 end
-% Solvent front: a small positive then negative blip at t0.
-y = y + 3 * exp(-(time - t0).^2 / (2 * 0.01^2)) - 2 * exp(-(time - t0 - 0.03).^2 / (2 * 0.015^2));
+switch o.front
+    case 'measured'
+        y = y + 85 * exp(-(time - t0).^2 / (2 * (0.0415 / (2 * sqrt(2 * log(2))))^2));
+    case 'none'
+    otherwise
+        error('hplcsim:simHPLC:front', 'opts.front must be ''measured'' or ''none''.');
+end
 y = y + o.drift * 100 * phiAt(time - tD - t0);
 y = y + o.noise * portableNoise(numel(time), o.seed);
 
@@ -120,7 +136,7 @@ end
 
 function o = defaults(o)
 d = struct('Vm', 0.5, 'Vd', 0.2, 'N0', 4000, 'F0', 1, 'vanDeemter', [1 0.4 0.6], ...
-    'rate', 150, 'noise', 0.05, 'drift', 0.02, 'seed', 1, 'dt', 0.002);
+    'rate', 150, 'noise', 0.05, 'drift', 0.02, 'seed', 1, 'dt', 0.002, 'front', 'measured');
 f = fieldnames(d);
 for i = 1:numel(f)
     if ~isfield(o, f{i}), o.(f{i}) = d.(f{i}); end
