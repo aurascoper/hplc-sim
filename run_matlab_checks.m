@@ -5,9 +5,11 @@ function run_matlab_checks(label)
 %   run to results/out_<label>.mat. label defaults to 'run'.
 %
 %   Start MATLAB in this folder, not inside HPLCMethodOptimisationGUI: the
-%   repo's startup.m calls mfilename with a hardcoded Windows path. The path
-%   is set by hand rather than with genpath, which would add Direct/ twice
-%   and put PeakFinder/findpeaks.m ahead of the Signal Toolbox one.
+%   repo's startup.m is the TS-EMO startup script, which adds the TS-EMO
+%   folders to the path and warns about a missing Test_functions folder.
+%   The path is set by hand rather than with genpath, which would add
+%   duplicate copies (Direct/ etc. under Benchmarking/) and put
+%   PeakFinder/findpeaks.m ahead of the Signal Toolbox one.
 
 if nargin < 1, label = 'run'; end
 here = fileparts(mfilename('fullpath'));
