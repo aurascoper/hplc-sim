@@ -11,7 +11,10 @@ function out = runSimOptimisation(varargin)
 %     'nInit'      7      initial experiments (Optimisation 1 used 7)
 %     'nOpt'       25     optimisation steps after that
 %     'sample'     simSample()
-%     'seed'       1      seeds the initial design and the fallback search
+%     'seed'       1      seeds the initial design, the fallback search and
+%                         the global random stream that BayesianOptimiser
+%                         and GODLIKE draw from, so a run repeats exactly;
+%                         the caller's random state is restored on return
 %     'useBO'      true   use BayesianOptimiser (needs fitrgp, from the
 %                         Statistics and Machine Learning Toolbox); with
 %                         false, or without fitrgp, random search instead
@@ -35,6 +38,9 @@ for i = 1:2:numel(varargin)
     p.(varargin{i}) = varargin{i + 1};
 end
 if isempty(p.sample), p.sample = simSample(); end
+callerRng = rng;
+restoreRng = onCleanup(@() rng(callerRng)); %#ok<NASGU>
+rng(p.seed);
 lb = [1 5 0];
 ub = [10 60 10];
 toMethod = @(z) [z(1) z(2) 95 30 z(3) 0 0 0 2 1.5 1 2 1];
