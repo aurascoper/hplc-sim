@@ -18,7 +18,8 @@ function report = check_saved_scores(repoRoot)
 %   except CombinedFunction1 in Optimisations 4 and 7 (0.013, 0.002). That
 %   objective normalises by the longest run so far, so a score saved before
 %   the last runs existed differs. This MATLAB version reads the .mat files
-%   directly and has not itself been run.
+%   directly; run in MATLAB R2026b on 2026-11-12, it gave the same results
+%   (repo at fcd1a0a).
 
 names = {'RsCrit2', 'Maximisepeaknumber', 'Minimisemethodtime', 'CombinedFunction1', 'WeightRespcmtmdHPLC018'};
 fns = {@responceRscrit, @responceNumbPeaks, @responceMaxTime, @responceCombFunc1, @WeightRespcmtmdHPLC018};
